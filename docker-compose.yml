@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: tpor-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: TPOR_Dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tpor-network
+
+  # TPOR Intranet API
+  tpor-api:
+    build:
+      context: .
+      dockerfile: src/TPOR.Intranet.API/Dockerfile
+    container_name: tpor-intranet-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DATABASE_CONNECTION_STRING=Server=mysql;Database=TPOR_Dev;Uid=root;Pwd=password;
+      - LOCAL_STORAGE_PATH=/app/uploads
+      - GOOGLE_CLOUD_PROJECT_ID=tpor-project-dev
+      - PUBSUB_TOPIC_NAME=file-processing-topic-dev
+      - JWT_SECRET=dev-super-secret-jwt-key-that-is-at-least-32-characters-long
+      - BUCKET_NAME=tpor-intranet-storage-dev
+    ports:
+      - "5001:8080"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - mysql
+    networks:
+      - tpor-network
+
+  # TPOR Intranet Worker
+  tpor-worker:
+    build:
+      context: .
+      dockerfile: src/TPOR.Intranet.Worker/Dockerfile
+    container_name: tpor-intranet-worker
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DATABASE_CONNECTION_STRING=Server=mysql;Database=TPOR_Dev;Uid=root;Pwd=password;
+      - LOCAL_STORAGE_PATH=/app/uploads
+      - GOOGLE_CLOUD_PROJECT_ID=tpor-project-dev
+      - PUBSUB_SUBSCRIPTION_NAME=file-processing-subscription-dev
+      - BUCKET_NAME=tpor-intranet-storage-dev
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - mysql
+    networks:
+      - tpor-network
+
+volumes:
+  mysql_data:
+
+networks:
+  tpor-network:
+    driver: bridge

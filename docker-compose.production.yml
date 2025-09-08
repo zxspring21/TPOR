@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # TPOR Intranet API (Production)
+  tpor-api:
+    build:
+      context: .
+      dockerfile: src/TPOR.Intranet.API/Dockerfile
+    container_name: tpor-intranet-api-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING}
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
+      - PUBSUB_TOPIC_NAME=${PUBSUB_TOPIC_NAME}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - SECRET_MANAGER_SECRET_NAME=${SECRET_MANAGER_SECRET_NAME}
+    ports:
+      - "8080:8080"
+    networks:
+      - tpor-network
+
+  # TPOR Intranet Worker (Production)
+  tpor-worker:
+    build:
+      context: .
+      dockerfile: src/TPOR.Intranet.Worker/Dockerfile
+    container_name: tpor-intranet-worker-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING}
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
+      - PUBSUB_SUBSCRIPTION_NAME=${PUBSUB_SUBSCRIPTION_NAME}
+      - BUCKET_NAME=${BUCKET_NAME}
+    networks:
+      - tpor-network
+
+networks:
+  tpor-network:
+    driver: bridge
